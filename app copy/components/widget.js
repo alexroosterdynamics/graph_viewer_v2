@@ -1,3 +1,5 @@
+//  app/components/widget.js
+
 "use client";
 
 import React from "react";

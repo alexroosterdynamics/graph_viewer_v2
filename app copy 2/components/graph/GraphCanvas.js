@@ -1,4 +1,3 @@
-// app/components/graph/GraphCanvas.js
 "use client";
 
 import React, { useMemo } from "react";
@@ -18,6 +17,7 @@ export default function GraphCanvas({ ctrl, nodeStyle = NODE_STYLES.CARD }) {
     approxRadius,
     arrowRelPos,
     ZOOM_SIZE_DAMPING,
+    POINTER_HIT_SCALE,
     STYLE,
     IFSTYLE,
     LABELS,
@@ -61,7 +61,7 @@ export default function GraphCanvas({ ctrl, nodeStyle = NODE_STYLES.CARD }) {
         approxRadius,
         pulseAlphaRef,
         ZOOM_SIZE_DAMPING,
-        canvasBg, // opaque blocker color to hide lines beneath
+        canvasBg, // <-- ensures the opaque blocker matches the page bg
       }),
     [
       nodeStyle,
@@ -75,26 +75,6 @@ export default function GraphCanvas({ ctrl, nodeStyle = NODE_STYLES.CARD }) {
       canvasBg,
     ]
   );
-
-  /** ---------- Bigger picking area (card-aware) ---------- */
-  const HIT = { SCALE: 2.4, MIN_PX: 18, CARD_PAD_PX: 10 };
-
-  // Mirror the card bounds used by the card renderer so the whole card is clickable
-  const measureCardBounds = (node, ctx, denom) => {
-    const label =
-      node.__placeholder && node.__placeholderName
-        ? node.__placeholderName
-        : node.name || "";
-    const px = (STYLE.labelPx * 0.95) / denom;
-    const padX = 12 / denom;
-    const padY = 6 / denom;
-    ctx.font = `${px}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
-    const textW = Math.max(24 / denom, ctx.measureText(label).width);
-    const w = textW + padX * 2;
-    const h = px + padY * 2;
-    const radius = 10 / denom;
-    return { w, h, radius };
-  };
 
   return (
     <ForceGraph2D
@@ -152,7 +132,8 @@ export default function GraphCanvas({ ctrl, nodeStyle = NODE_STYLES.CARD }) {
         const selected = linkIsSelected(l);
 
         if (selected) {
-          const pulse = 0.65 + 0.35 * (0.5 + 0.5 * Math.sin(pulseTRef.current * 2 * Math.PI * 1.2));
+          const pulse =
+            0.65 + 0.35 * (0.5 + 0.5 * Math.sin(pulseTRef.current * 2 * Math.PI * 1.2));
           const baseWidth = l.relation === "interface" ? IFSTYLE.linkWidth : STYLE.linkWidth;
 
           ctx.save();
@@ -168,7 +149,7 @@ export default function GraphCanvas({ ctrl, nodeStyle = NODE_STYLES.CARD }) {
           ctx.stroke();
           ctx.restore();
 
-          return; // replace draw
+          return; // replace
         }
 
         if (ui.blurInterface && l.relation === "interface") {
@@ -211,48 +192,12 @@ export default function GraphCanvas({ ctrl, nodeStyle = NODE_STYLES.CARD }) {
 
       nodeVisibility={nodeVisibility}
       linkVisibility={linkVisibility}
-
-      /* === BIGGER CLICK AREA (card-aware) === */
       nodePointerAreaPaint={(node, color, ctx, globalScale) => {
         if (!(node.__isTree || ui.showInterface)) return;
         const denom = Math.max(globalScale / ZOOM_SIZE_DAMPING, STYLE.minZoomFontScale);
-        const x = node.x ?? 0;
-        const y = node.y ?? 0;
-
-        // Card style: rectangular pick mask over the whole card (+ padding)
-        if ((nodeStyle || "").toLowerCase() === "card") {
-          ctx.save();
-          const { w, h, radius } = measureCardBounds(node, ctx, denom);
-          const pad = HIT.CARD_PAD_PX / denom;
-          const rx = x - w / 2 - pad;
-          const ry = y - h / 2 - pad;
-          const rw = w + pad * 2;
-          const rh = h + pad * 2;
-          const r = Math.min(radius + pad, Math.min(rw, rh) / 2);
-
-          ctx.beginPath();
-          ctx.moveTo(rx + r, ry);
-          ctx.lineTo(rx + rw - r, ry);
-          ctx.arcTo(rx + rw, ry, rx + rw, ry + r, r);
-          ctx.lineTo(rx + rw, ry + rh - r);
-          ctx.arcTo(rx + rw, ry + rh, rx + rw - r, ry + rh, r);
-          ctx.lineTo(rx + r, ry + rh);
-          ctx.arcTo(rx, ry + rh, rx, ry + rh - r, r);
-          ctx.lineTo(rx, ry + r);
-          ctx.arcTo(rx, ry, rx + r, ry, r);
-          ctx.closePath();
-
-          ctx.fillStyle = color; // invisible picking mask
-          ctx.fill();
-          ctx.restore();
-          return;
-        }
-
-        // Circle styles (original/simple): enlarge pointer radius generously
-        const visualR = approxRadius(node) / denom;
-        const hitR = Math.max(HIT.MIN_PX / denom, visualR * HIT.SCALE);
+        const r = (approxRadius(node) / denom) * POINTER_HIT_SCALE;
         ctx.beginPath();
-        ctx.arc(x, y, hitR, 0, 2 * Math.PI, false);
+        ctx.arc(node.x, node.y, Math.max(1, r), 0, 2 * Math.PI, false);
         ctx.fillStyle = color;
         ctx.fill();
       }}
@@ -268,6 +213,7 @@ export default function GraphCanvas({ ctrl, nodeStyle = NODE_STYLES.CARD }) {
           const y = node.y ?? 0;
 
           if ((nodeStyle || "").toLowerCase() === "card") {
+            // approximate card bounds from label (mirror renderer math)
             const label =
               node.__placeholder && node.__placeholderName
                 ? node.__placeholderName

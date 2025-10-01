@@ -10,8 +10,8 @@ export const TIMING = {
 // Forces
 export const FORCE = {
   tree: {
-    linkDistance: 55,
-    linkStrength: 0.9,
+    linkDistance: 1,
+    linkStrength: 0.5,
     charge: -1,
   },
   interface: {

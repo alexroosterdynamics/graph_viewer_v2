@@ -65,6 +65,11 @@ export function configureForces(
   { collideRadius = 18, collideStrength = 1.0, boostFactor = 1.8 } = {}
 ) {
   if (!fg) return;
+
+  // Current links snapshot (IMPORTANT so new distances apply)
+  const gd = typeof fg.graphData === "function" ? fg.graphData() : fg.graphData;
+  const links = gd?.links || [];
+
   const linkF = fg.d3Force("link");
   if (linkF) {
     const boostedTreeLS =
@@ -76,22 +81,16 @@ export function configureForces(
       .id((d) => d.id)
       .distance((l) =>
         l.relation === "interface"
-          ? FORCE.interface.linkDistance
-          : FORCE.tree.linkDistance
+          ? +FORCE.interface.linkDistance
+          : +FORCE.tree.linkDistance
       )
-      .strength((l) => {
-        if (phaseName === "withInterface") {
-          return l.relation === "interface" ? FORCE.interface.linkStrength : 0;
-        }
-        // settleTree
-        return l.relation === "interface"
-          ? FORCE.interface.linkStrength
-          : boostedTreeLS;
-      });
+      .strength((l) =>
+        phaseName === "withInterface"
+          ? (l.relation === "interface" ? FORCE.interface.linkStrength : 0.05) // tiny non-zero to help distance settle
+          : (l.relation === "interface" ? FORCE.interface.linkStrength : boostedTreeLS)
+      );
 
-    // Rebind to current links
-    const gd = fg.graphData?.() || fg.graphData?.call?.(fg);
-    const links = gd?.links || [];
+    // Rebind to current links so the new distance is actually used
     linkF.links(links);
   }
 
@@ -105,18 +104,13 @@ export function configureForces(
     chargeF
       .strength((d) =>
         phaseName === "withInterface"
-          ? d.__isTree
-            ? 0
-            : FORCE.interface.charge
-          : d.__isTree
-          ? boostedTreeCharge
-          : FORCE.interface.charge
+          ? (d.__isTree ? 0 : FORCE.interface.charge)
+          : (d.__isTree ? boostedTreeCharge : FORCE.interface.charge)
       )
       .distanceMin(1)
       .distanceMax(2000);
   }
 
-  // Collision during settleTree (for tree nodes only)
   if (phaseName === "settleTree") {
     fg.d3Force(
       "collide",
@@ -128,5 +122,9 @@ export function configureForces(
     fg.d3Force("collide", null);
   }
 
+  // Let distances stretch faster
+  fg.d3VelocityDecay?.(0.25);
+  // Kick the sim hard for first layout so distance is respected
+  fg.d3AlphaTarget?.(0.7);
   fg.d3ReheatSimulation?.();
 }

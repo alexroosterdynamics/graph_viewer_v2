@@ -3,7 +3,7 @@ import React from "react";
 
 // You can control the effect with these constants.
 const CONSTELLATION_OPACITY = 0.7; // Controls transparency (0.0 to 1.0)
-const CONSTELLATION_BLUR_PX = 1; // Controls blur in pixels (e.g., 0.5, 1, 2). Set to 0 for no blur.
+const CONSTELLATION_BLUR_PX = 2; // Controls blur in pixels (e.g., 0.5, 1, 2). Set to 0 for no blur.
 
 export default function Background({ config }) {
   const {

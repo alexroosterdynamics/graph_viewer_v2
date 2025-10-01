@@ -1,3 +1,4 @@
+// app/components/FunctionsGraph.js
 "use client";
 
 import React from "react";
@@ -9,7 +10,7 @@ import { useGraphController } from "./graph/controller";
 import GraphCanvas from "./graph/GraphCanvas";
 import { BACKGROUND } from "../constants";
 
-export default function FunctionsGraph({ data }) {
+export default function FunctionsGraph({ data, nodeStyle }) {
   const ctrl = useGraphController(data);
 
   return (
@@ -60,8 +61,8 @@ export default function FunctionsGraph({ data }) {
       {/* Inline rename box */}
       {ctrl.renderInlineRename()}
 
-      {/* ForceGraph canvas */}
-      <GraphCanvas ctrl={ctrl} />
+      {/* ForceGraph canvas — pass nodeStyle */}
+      <GraphCanvas ctrl={ctrl} nodeStyle={nodeStyle} />
     </div>
   );
 }

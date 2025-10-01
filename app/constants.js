@@ -10,8 +10,8 @@ export const TIMING = {
 // Forces
 export const FORCE = {
   tree: {
-    linkDistance: 55,
-    linkStrength: 0.9,
+    linkDistance: 1,
+    linkStrength: 0.5,
     charge: -1,
   },
   interface: {
@@ -88,7 +88,7 @@ export const LOCAL = {
 
 // Local-view scaling
 export const LOCAL_SCALING = {
-  rootScaleMul: 2.0, // focused node multiplier in local view
+  rootScaleMul: 1, // focused node multiplier in local view
   childDecay: 0.85, // each deeper level is previous × this
 };
 
